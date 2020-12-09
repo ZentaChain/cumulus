@@ -100,10 +100,10 @@ where
 	PF: Environment<Block> + 'static + Send,
 	PF::Proposer: Send,
 	BI: BlockImport<
-			Block,
-			Error = ConsensusError,
-			Transaction = <PF::Proposer as Proposer<Block>>::Transaction,
-		> + Send
+		Block,
+		Error = ConsensusError,
+		Transaction = <PF::Proposer as Proposer<Block>>::Transaction,
+	> + Send
 		+ Sync
 		+ 'static,
 	BS: BlockBackend<Block>,
@@ -215,8 +215,32 @@ where
 			.ok()?;
 
 		let validation_data = {
-			// TODO: Actual proof is to be created in the upcoming PRs.
-			let relay_chain_state = sp_state_machine::StorageProof::empty();
+			let relay_parent_state_backend = self
+				.polkadot_backend
+				.state_at(BlockId::Hash(relay_parent))
+				.map_err(|e| {
+					error!(
+						target: "cumulus-collator",
+						"Cannot obtain the state backend for the relay-parent: {:?}",
+						e,
+					)
+				})
+				.ok()?;
+
+			let relevant_keys = &[
+				""
+			];
+			let relay_chain_state =
+				sp_state_machine::prove_read(relay_parent_state_backend, relevant_keys)
+					.map_err(|e| {
+						error!(
+							target: "cumulus-collator",
+							"Failed to collect required relay chain state storage proof: {:?}",
+							e,
+						)
+					})
+					.ok()?;
+
 			inherents::ValidationDataType {
 				validation_data: validation_data.clone(),
 				relay_chain_state,
