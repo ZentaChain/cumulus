@@ -129,8 +129,19 @@ decl_module! {
 			storage::unhashed::put(VALIDATION_DATA, &vfp);
 			DidUpdateValidationData::put(true);
 
-			// TODO: here we should extract the key value pairs out of the storage proof.
-			drop(relay_chain_state);
+			{
+				use sp_state_machine::Backend as _;
+
+				let db = relay_chain_state.into_memory_db::<sp_core::Blake2Hasher>();
+				// TODO: first, extract state root from the validation data type.
+				let root = sp_core::H256::zero();
+				// TODO: check !db.contains(&root, EMPTY_PREFIX) => invalid proof
+				let backend = sp_state_machine::TrieBackend::new(db, root);
+				backend.storage(b":code").unwrap();
+			}
+
+			// TODO: here we should reassemble the storage proof provided from the relay-chain into
+			// a nice structure here.
 
 			<T::OnValidationData as OnValidationData>::on_validation_data(vfp);
 		}
