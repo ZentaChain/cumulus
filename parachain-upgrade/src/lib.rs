@@ -32,17 +32,18 @@
 use cumulus_primitives::{
 	inherents::{ValidationDataType, VALIDATION_DATA_IDENTIFIER as INHERENT_IDENTIFIER},
 	well_known_keys::{NEW_VALIDATION_CODE, VALIDATION_DATA},
-	OnValidationData, ValidationData,
+	OnValidationData, ValidationData, relay_chain,
 };
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
-	weights::{DispatchClass, Weight},
+	weights::{DispatchClass, Weight}, dispatch::DispatchResult,
 };
 use frame_system::{ensure_none, ensure_root};
 use parachain::primitives::RelayChainBlockNumber;
 use sp_core::storage::well_known_keys;
 use sp_inherents::{InherentData, InherentIdentifier, ProvideInherent};
 use sp_std::vec::Vec;
+use sp_runtime::traits::HashFor;
 
 type System<T> = frame_system::Module<T>;
 
@@ -106,7 +107,7 @@ decl_module! {
 		/// As a side effect, this function upgrades the current validation function
 		/// if the appropriate time has come.
 		#[weight = (0, DispatchClass::Mandatory)]
-		fn set_validation_data(origin, data: ValidationDataType) {
+		fn set_validation_data(origin, data: ValidationDataType) -> DispatchResult {
 			ensure_none(origin)?;
 			assert!(!DidUpdateValidationData::exists(), "ValidationData must be updated only once in a block");
 
@@ -132,18 +133,21 @@ decl_module! {
 			{
 				use sp_state_machine::Backend as _;
 
-				let db = relay_chain_state.into_memory_db::<sp_core::Blake2Hasher>();
-				// TODO: first, extract state root from the validation data type.
-				let root = sp_core::H256::zero();
-				// TODO: check !db.contains(&root, EMPTY_PREFIX) => invalid proof
+				let db = relay_chain_state.into_memory_db::<HashFor<relay_chain::Block>>();
+				let root = vfp.persisted.relay_storage_root;
+				if !db.contains(&root, EMPTY_PREFIX) {
+					return Err(Error::<T>::InvalidRelayChainMerkleProof);
+				}
 				let backend = sp_state_machine::TrieBackend::new(db, root);
-				backend.storage(b":code").unwrap();
+
 			}
 
 			// TODO: here we should reassemble the storage proof provided from the relay-chain into
 			// a nice structure here.
 
 			<T::OnValidationData as OnValidationData>::on_validation_data(vfp);
+
+			Ok(())
 		}
 
 		fn on_finalize() {
@@ -203,7 +207,7 @@ impl<T: Config> Module<T> {
 	/// The implementation of the runtime upgrade scheduling.
 	fn schedule_upgrade_impl(
 		validation_function: Vec<u8>,
-	) -> frame_support::dispatch::DispatchResult {
+	) -> DispatchResult {
 		ensure!(
 			!PendingValidationFunction::exists(),
 			Error::<T>::OverlappingUpgrades
@@ -231,6 +235,15 @@ impl<T: Config> Module<T> {
 
 		Ok(())
 	}
+
+	fn extract_relay_aux_data(relay_storage_proof: StorageProof, relay_storage_root: Hash) {
+
+	}
+}
+
+/// Additional data fetched from the relay-chain necessary for correctly producing a candidate.
+pub struct RelayAuxData {
+	max
 }
 
 impl<T: Config> ProvideInherent for Module<T> {
@@ -268,6 +281,8 @@ decl_error! {
 		TooBig,
 		/// The inherent which supplies the validation data did not run this block
 		ValidationDataNotAvailable,
+		/// Invalid relay-chain storage merkle proof
+		InvalidRelayChainMerkleProof,
 	}
 }
 
