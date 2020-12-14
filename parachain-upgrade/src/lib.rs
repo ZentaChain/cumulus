@@ -132,14 +132,19 @@ decl_module! {
 
 			{
 				use sp_state_machine::Backend as _;
+				use hash_db::{HashDB, EMPTY_PREFIX};
 
 				let db = relay_chain_state.into_memory_db::<HashFor<relay_chain::Block>>();
 				let root = vfp.persisted.relay_storage_root;
 				if !db.contains(&root, EMPTY_PREFIX) {
-					return Err(Error::<T>::InvalidRelayChainMerkleProof);
+					panic!("storage proof doesn't contain hash for {:?}", root);
+					// return Err(Error::<T>::InvalidRelayChainMerkleProof.into());
 				}
 				let backend = sp_state_machine::TrieBackend::new(db, root);
 
+				let raw_configuration = backend.storage(
+					&hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"]
+				).unwrap();
 			}
 
 			// TODO: here we should reassemble the storage proof provided from the relay-chain into
@@ -235,15 +240,6 @@ impl<T: Config> Module<T> {
 
 		Ok(())
 	}
-
-	fn extract_relay_aux_data(relay_storage_proof: StorageProof, relay_storage_root: Hash) {
-
-	}
-}
-
-/// Additional data fetched from the relay-chain necessary for correctly producing a candidate.
-pub struct RelayAuxData {
-	max
 }
 
 impl<T: Config> ProvideInherent for Module<T> {

@@ -28,6 +28,8 @@ sp-state-machine = { git = "https://github.com/paritytech/substrate", default-fe
 # Other Dependencies
 codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false, features = ["derive"]}
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
+hex-literal = "0.2.1"
+hash-db = { version = "0.15.2", default-features = false }
 
 [dev-dependencies]
 sp-externalities = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "master" }
@@ -46,6 +48,7 @@ std = [
 	'sp-runtime/std',
 	'sp-io/std',
 	'sp-std/std',
+	"hash-db/std",
 	'sp-state-machine/std',
 	'frame-system/std',
 	'cumulus-primitives/std',

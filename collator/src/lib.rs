@@ -215,6 +215,10 @@ where
 			.ok()?;
 
 		let validation_data = {
+			info!("fetching some juicy proofs at relay-parent {:?}", relay_parent);
+			info!("PVD relay block number {} (remember the -1)", validation_data.persisted.block_number);
+			info!("number of relay-parent: {:?}", self.polkadot_client.number(relay_parent).unwrap_or_default());
+
 			let relay_parent_state_backend = self
 				.polkadot_backend
 				.state_at(BlockId::Hash(relay_parent))
@@ -226,9 +230,10 @@ where
 					)
 				})
 				.ok()?;
+			info!("state root is {:?}", relay_parent_state_backend.storage_root(std::iter::empty()).0);
 
 			let relevant_keys = &[
-				""
+				hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"],
 			];
 			let relay_chain_state =
 				sp_state_machine::prove_read(relay_parent_state_backend, relevant_keys)
