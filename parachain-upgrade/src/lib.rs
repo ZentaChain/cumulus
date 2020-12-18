@@ -145,6 +145,8 @@ decl_module! {
 				let raw_configuration = backend.storage(
 					&hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"]
 				).unwrap();
+
+				frame_support::debug::print!("raw_configuration {:?}", raw_configuration);
 			}
 
 			// TODO: here we should reassemble the storage proof provided from the relay-chain into
