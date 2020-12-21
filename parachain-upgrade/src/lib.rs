@@ -45,6 +45,8 @@ use sp_inherents::{InherentData, InherentIdentifier, ProvideInherent};
 use sp_std::vec::Vec;
 use sp_runtime::traits::HashFor;
 
+mod relay_config;
+
 type System<T> = frame_system::Module<T>;
 
 /// The pallet's configuration trait.
@@ -133,6 +135,7 @@ decl_module! {
 			{
 				use sp_state_machine::Backend as _;
 				use hash_db::{HashDB, EMPTY_PREFIX};
+				use codec::Decode;
 
 				let db = relay_chain_state.into_memory_db::<HashFor<relay_chain::Block>>();
 				let root = vfp.persisted.relay_storage_root;
@@ -144,9 +147,14 @@ decl_module! {
 
 				let raw_configuration = backend.storage(
 					&hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"]
-				).unwrap();
+				)
+				.expect("error retrieving the configuration")
+				.expect("the configuration is not set");
 
-				frame_support::debug::print!("raw_configuration {:?}", raw_configuration);
+				let host_config = relay_config::HostConfiguration::decode(&mut &raw_configuration[..])
+					.expect("can't decode host configuration; perhaps the relay-chain definition was updated?");
+
+				frame_support::debug::print!("host_config: {:?}", host_config);
 			}
 
 			// TODO: here we should reassemble the storage proof provided from the relay-chain into
