@@ -216,7 +216,7 @@ where
 
 		let validation_data = {
 			info!("fetching some juicy proofs at relay-parent {:?}", relay_parent);
-			info!("PVD relay block number {} (remember the -1)", validation_data.persisted.block_number);
+			info!("PVD relay block number {}", validation_data.persisted.block_number);
 			info!("number of relay-parent: {:?}", self.polkadot_client.number(relay_parent).unwrap_or_default());
 
 			let relay_parent_state_backend = self
