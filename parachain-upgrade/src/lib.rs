@@ -45,9 +45,7 @@ use sp_inherents::{InherentData, InherentIdentifier, ProvideInherent};
 use sp_std::vec::Vec;
 use sp_runtime::traits::HashFor;
 
-mod relay_config;
-
-type System<T> = frame_system::Module<T>;
+pub mod relay_config;
 
 /// The pallet's configuration trait.
 pub trait Config: frame_system::Config {
@@ -71,6 +69,13 @@ decl_storage! {
 
 		/// Were the validation data set to notify the relay chain?
 		DidSetValidationCode: bool;
+
+		/// The host configuration that was obtained from the relay parent and submitted via the
+		/// inherent.
+		HostConfiguration get(fn host_configuration): Option<relay_config::HostConfiguration>;
+
+		/// The last relay parent block number at which we signalled the code upgrade.
+		LastUpgrade: relay_chain::BlockNumber;
 	}
 }
 
@@ -84,17 +89,6 @@ decl_module! {
 		// TODO: figure out a better weight than this
 		#[weight = (0, DispatchClass::Operational)]
 		pub fn schedule_upgrade(origin, validation_function: Vec<u8>) {
-			ensure_root(origin)?;
-			System::<T>::can_set_code(&validation_function)?;
-			Self::schedule_upgrade_impl(validation_function)?;
-		}
-
-		/// Schedule a validation function upgrade without further checks.
-		///
-		/// Same as [`Module::schedule_upgrade`], but without checking that the new `validation_function`
-		/// is correct. This makes it more flexible, but also opens the door to easily brick the chain.
-		#[weight = (0, DispatchClass::Operational)]
-		pub fn schedule_upgrade_without_checks(origin, validation_function: Vec<u8>) {
 			ensure_root(origin)?;
 			Self::schedule_upgrade_impl(validation_function)?;
 		}
@@ -124,6 +118,7 @@ decl_module! {
 			if let Some((apply_block, validation_function)) = PendingValidationFunction::get() {
 				if vfp.persisted.block_number >= apply_block {
 					PendingValidationFunction::kill();
+					LastUpgrade::put(&apply_block);
 					Self::put_parachain_code(&validation_function);
 					Self::deposit_event(Event::ValidationFunctionApplied(vfp.persisted.block_number));
 				}
@@ -140,8 +135,7 @@ decl_module! {
 				let db = relay_chain_state.into_memory_db::<HashFor<relay_chain::Block>>();
 				let root = vfp.persisted.relay_storage_root;
 				if !db.contains(&root, EMPTY_PREFIX) {
-					panic!("storage proof doesn't contain hash for {:?}", root);
-					// return Err(Error::<T>::InvalidRelayChainMerkleProof.into());
+					return Err(Error::<T>::InvalidRelayChainMerkleProof.into());
 				}
 				let backend = sp_state_machine::TrieBackend::new(db, root);
 
@@ -155,6 +149,8 @@ decl_module! {
 					.expect("can't decode host configuration; perhaps the relay-chain definition was updated?");
 
 				frame_support::debug::print!("host_config: {:?}", host_config);
+
+				HostConfiguration::put(host_config);
 			}
 
 			// TODO: here we should reassemble the storage proof provided from the relay-chain into
@@ -207,16 +203,34 @@ impl<T: Config> Module<T> {
 		storage::unhashed::put_raw(well_known_keys::CODE, code);
 	}
 
-	/// `true` when a code upgrade is currently legal
-	pub fn can_set_code() -> bool {
-		Self::validation_data()
-			.map(|vfp| vfp.transient.code_upgrade_allowed.is_some())
-			.unwrap_or_default()
+	/// The maximum code size permitted, in bytes.
+	pub fn max_code_size() -> u32 {
+		HostConfiguration::get()
+			.expect("the host configuration should have been set")
+			.max_code_size
 	}
 
-	/// The maximum code size permitted, in bytes.
-	pub fn max_code_size() -> Option<u32> {
-		Self::validation_data().map(|vfp| vfp.transient.max_code_size)
+	/// Returns if a PVF/runtime upgrade could be signalled at the current block, and if so
+	/// when the new code will take the effect.
+	fn code_upgrade_allowed() -> Option<relay_chain::BlockNumber> {
+		if PendingValidationFunction::get().is_some() {
+			// There is already upgrade scheduled. Upgrade is not allowed.
+			return None;
+		}
+
+		let cfg = HostConfiguration::get().unwrap();
+		let vfp = Self::validation_data().unwrap();
+		let relay_blocks_since_last_upgrade = vfp
+			.persisted
+			.block_number
+			.saturating_sub(LastUpgrade::get());
+
+		if relay_blocks_since_last_upgrade <= cfg.validation_upgrade_frequency {
+			// The cooldown after the last upgrade hasn't elapsed yet. Upgrade is not allowed.
+			return None;
+		}
+
+		Some(vfp.persisted.block_number + cfg.validation_upgrade_delay)
 	}
 
 	/// The implementation of the runtime upgrade scheduling.
@@ -232,9 +246,7 @@ impl<T: Config> Module<T> {
 			validation_function.len() <= vfp.transient.max_code_size as usize,
 			Error::<T>::TooBig
 		);
-		let apply_block = vfp
-			.transient
-			.code_upgrade_allowed
+		let apply_block = Self::code_upgrade_allowed()
 			.ok_or(Error::<T>::ProhibitedByPolkadot)?;
 
 		// When a code upgrade is scheduled, it has to be applied in two
@@ -374,6 +386,7 @@ mod tests {
 	}
 
 	type ParachainUpgrade = Module<Test>;
+	type System = frame_system::Module<Test>;
 
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
@@ -495,7 +508,7 @@ mod tests {
 					}
 
 					// begin initialization
-					System::<Test>::initialize(
+					System::initialize(
 						&n,
 						&Default::default(),
 						&Default::default(),
@@ -555,7 +568,7 @@ mod tests {
 					}
 
 					// clean up
-					System::<Test>::finalize();
+					System::finalize();
 					if let Some(after_block) = after_block {
 						after_block();
 					}
@@ -612,7 +625,7 @@ mod tests {
 					));
 				},
 				|| {
-					let events = System::<Test>::events();
+					let events = System::events();
 					assert_eq!(
 						events[0].event,
 						TestEvent::parachain_upgrade(Event::ValidationFunctionStored(1123))
@@ -623,7 +636,7 @@ mod tests {
 				1234,
 				|| {},
 				|| {
-					let events = System::<Test>::events();
+					let events = System::events();
 					assert_eq!(
 						events[0].event,
 						TestEvent::parachain_upgrade(Event::ValidationFunctionApplied(1234))
