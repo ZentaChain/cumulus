@@ -37,12 +37,8 @@ use cumulus_primitives::{
 	UpwardMessage, UpwardMessageSender, HrmpMessageSender,
 };
 
-// TODO: these should be not a constant, but sourced from the relay-chain configuration.
-const UMP_MSG_NUM_PER_CANDIDATE: usize = 5;
-const HRMP_MSG_NUM_PER_CANDIDATE: usize = 5;
-
 /// Configuration trait of the message broker pallet.
-pub trait Config: frame_system::Config {
+pub trait Config: frame_system::Config + cumulus_parachain_upgrade::Config {
 	/// The downward message handlers that will be informed when a message is received.
 	type DownwardMessageHandlers: DownwardMessageHandler;
 	/// The HRMP message handlers that will be informed when a message is received.
@@ -127,19 +123,27 @@ decl_module! {
 			storage::unhashed::kill(well_known_keys::UPWARD_MESSAGES);
 			storage::unhashed::kill(well_known_keys::HRMP_OUTBOUND_MESSAGES);
 
+			weight += T::DbWeight::get().reads(1);
+			let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
+
 			// Reads and writes performed by `on_finalize`. This may actually turn out to be lower,
 			// but we should err on the safe side.
 			weight += T::DbWeight::get().reads_writes(
-				2 + HRMP_MSG_NUM_PER_CANDIDATE as u64,
-				4 + HRMP_MSG_NUM_PER_CANDIDATE as u64,
+				3 + host_config.hrmp_max_message_num_per_candidate as u64,
+				4 + host_config.hrmp_max_message_num_per_candidate as u64,
 			);
 
 			weight
 		}
 
 		fn on_finalize() {
+			let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
+
 			<Self as Store>::PendingUpwardMessages::mutate(|up| {
-				let num = cmp::min(UMP_MSG_NUM_PER_CANDIDATE, up.len());
+				let num = cmp::min(
+					host_config.max_upward_message_num_per_candidate as usize,
+					up.len(),
+				);
 				storage::unhashed::put(
 					well_known_keys::UPWARD_MESSAGES,
 					&up[0..num],
@@ -151,7 +155,10 @@ decl_module! {
 			// per block limit, there is also a constraint that it's possible to send only a single
 			// message to a given recipient per candidate.
 			let mut non_empty_hrmp_channels = NonEmptyHrmpChannels::get();
-			let outbound_hrmp_num = cmp::min(HRMP_MSG_NUM_PER_CANDIDATE, non_empty_hrmp_channels.len());
+			let outbound_hrmp_num = cmp::min(
+				host_config.hrmp_max_message_num_per_candidate as usize,
+				non_empty_hrmp_channels.len(),
+			);
 			let mut outbound_hrmp_messages = Vec::with_capacity(outbound_hrmp_num);
 			let mut prune_empty = Vec::with_capacity(outbound_hrmp_num);
 
@@ -210,15 +217,17 @@ pub enum SendHorizontalErr {
 
 impl<T: Config> Module<T> {
 	pub fn send_upward_message(message: UpwardMessage) -> Result<(), SendUpErr> {
-		// TODO: check the message against the limit. The limit should be sourced from the
-		// relay-chain configuration.
+		let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
+		if message.len() > host_config.max_upward_message_size as usize {
+			return Err(SendUpErr::TooBig)
+		}
 		<Self as Store>::PendingUpwardMessages::append(message);
 		Ok(())
 	}
 
 	pub fn send_hrmp_message(message: OutboundHrmpMessage) -> Result<(), SendHorizontalErr> {
 		// TODO:
-		// (a) check against the size limit sourced from the relay-chain configuration
+		// (a) check against the size limit sourced from the channel in question configuration
 		// (b) check if the channel to the recipient is actually opened.
 
 		let OutboundHrmpMessage { recipient, data } = message;
