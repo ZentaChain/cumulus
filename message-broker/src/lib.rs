@@ -124,14 +124,19 @@ decl_module! {
 			storage::unhashed::kill(well_known_keys::HRMP_OUTBOUND_MESSAGES);
 
 			weight += T::DbWeight::get().reads(1);
-			let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
 
-			// Reads and writes performed by `on_finalize`. This may actually turn out to be lower,
-			// but we should err on the safe side.
-			weight += T::DbWeight::get().reads_writes(
-				3 + host_config.hrmp_max_message_num_per_candidate as u64,
-				4 + host_config.hrmp_max_message_num_per_candidate as u64,
-			);
+			// TODO: Here we should do a tricky thing: we should check if the config is there,
+			// if it is, then, proceed normally. If it is not then means that we haven't devoted
+			// weight for processing messages and thus none should be sent out.
+			
+			// let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
+
+			// // Reads and writes performed by `on_finalize`. This may actually turn out to be lower,
+			// // but we should err on the safe side.
+			// weight += T::DbWeight::get().reads_writes(
+			// 	3 + host_config.hrmp_max_message_num_per_candidate as u64,
+			// 	4 + host_config.hrmp_max_message_num_per_candidate as u64,
+			// );
 
 			weight
 		}
@@ -140,14 +145,30 @@ decl_module! {
 			let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
 
 			<Self as Store>::PendingUpwardMessages::mutate(|up| {
-				let num = cmp::min(
-					host_config.max_upward_message_num_per_candidate as usize,
-					up.len(),
+				let (count, size) = <cumulus_parachain_upgrade::Module<T>>::relevant_relay_state()
+					.unwrap()
+					.relay_dispatch_queue_size;
+
+				let available_capacity = cmp::min(
+					host_config.max_upward_queue_count.saturating_sub(count),
+					host_config.max_upward_message_num_per_candidate,
 				);
-				storage::unhashed::put(
-					well_known_keys::UPWARD_MESSAGES,
-					&up[0..num],
-				);
+				let available_size = host_config.max_upward_queue_size.saturating_sub(size);
+
+				// Count the number of messages we can possibly fit in the given constraints, i.e.
+				// available_capacity and available_size.
+				let num = up
+					.iter()
+					.scan(
+						(available_capacity as usize, available_size as usize),
+						|(cnt, size), msg| match (cnt.checked_sub(1), size.checked_sub(msg.len())) {
+							(Some(cnt), Some(size)) => Some((cnt, size)),
+							_ => None,
+						},
+					)
+					.count();
+
+				storage::unhashed::put(well_known_keys::UPWARD_MESSAGES, &up[0..num]);
 				*up = up.split_off(num);
 			});
 

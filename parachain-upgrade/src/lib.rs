@@ -32,11 +32,11 @@
 use cumulus_primitives::{
 	inherents::{ValidationDataType, VALIDATION_DATA_IDENTIFIER as INHERENT_IDENTIFIER},
 	well_known_keys::{NEW_VALIDATION_CODE, VALIDATION_DATA},
-	OnValidationData, ValidationData, relay_chain,
+	OnValidationData, ValidationData, relay_chain, ParaId,
 };
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
-	weights::{DispatchClass, Weight}, dispatch::DispatchResult,
+	weights::{DispatchClass, Weight}, dispatch::DispatchResult, traits::Get,
 };
 use frame_system::{ensure_none, ensure_root};
 use parachain::primitives::RelayChainBlockNumber;
@@ -47,6 +47,11 @@ use sp_runtime::traits::HashFor;
 
 pub mod relay_config;
 
+#[derive(codec::Encode, codec::Decode)]
+pub struct RelayStateDigest {
+	pub relay_dispatch_queue_size: (u32, u32),
+}
+
 /// The pallet's configuration trait.
 pub trait Config: frame_system::Config {
 	/// The overarching event type.
@@ -54,6 +59,9 @@ pub trait Config: frame_system::Config {
 
 	/// Something which can be notified when the validation data is set.
 	type OnValidationData: OnValidationData;
+
+	/// Returns the parachain ID we are running with.
+	type SelfParaId: Get<ParaId>;
 }
 
 // This pallet's storage items.
@@ -76,6 +84,8 @@ decl_storage! {
 
 		/// The last relay parent block number at which we signalled the code upgrade.
 		LastUpgrade: relay_chain::BlockNumber;
+
+		RelevantRelayState get(fn relevant_relay_state): Option<RelayStateDigest>;
 	}
 }
 
@@ -140,7 +150,7 @@ decl_module! {
 				let backend = sp_state_machine::TrieBackend::new(db, root);
 
 				let raw_configuration = backend.storage(
-					&hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"]
+					relay_chain::well_known_keys::ACTIVE_CONFIG,
 				)
 				.expect("error retrieving the configuration")
 				.expect("the configuration is not set");
@@ -149,6 +159,21 @@ decl_module! {
 					.expect("can't decode host configuration; perhaps the relay-chain definition was updated?");
 
 				frame_support::debug::print!("host_config: {:?}", host_config);
+
+				let relay_dispatch_queue_size = backend.storage(
+					&relay_chain::well_known_keys::relay_dispatch_queue_size(
+						T::SelfParaId::get()
+					),
+				).expect("error retrieving relay dispatch queue size");
+				let relay_dispatch_queue_size = relay_dispatch_queue_size.map(|raw| {
+					<(u32, u32)>::decode(
+						&mut &raw[..],
+					).expect("relay dispatch queue size encoding")
+				}).unwrap_or((0, 0));
+
+				RelevantRelayState::put(RelayStateDigest {
+					relay_dispatch_queue_size,
+				});
 
 				HostConfiguration::put(host_config);
 			}

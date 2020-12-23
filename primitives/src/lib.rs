@@ -28,10 +28,7 @@ pub use polkadot_primitives::v1::{
 pub mod genesis;
 
 /// A module that re-exports relevant relay chain definitions.
-pub mod relay_chain {
-	pub use polkadot_core_primitives::*;
-	pub use polkadot_primitives::v1;
-}
+pub mod relay_chain;
 
 /// An inbound HRMP message.
 pub type InboundHrmpMessage = polkadot_primitives::v1::InboundHrmpMessage<relay_chain::BlockNumber>;

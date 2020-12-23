@@ -20,7 +20,7 @@ use cumulus_network::WaitToAnnounce;
 use cumulus_primitives::{
 	inherents::{self, VALIDATION_DATA_IDENTIFIER},
 	well_known_keys, InboundDownwardMessage, InboundHrmpMessage, OutboundHrmpMessage,
-	ValidationData,
+	ValidationData, relay_chain,
 };
 use cumulus_runtime::ParachainBlockData;
 
@@ -232,8 +232,11 @@ where
 				.ok()?;
 			info!("state root is {:?}", relay_parent_state_backend.storage_root(std::iter::empty()).0);
 
+			let relay_dispatch_queue_size =
+				relay_chain::well_known_keys::relay_dispatch_queue_size(self.para_id);
 			let relevant_keys = &[
-				hex_literal::hex!["06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"],
+				relay_chain::well_known_keys::ACTIVE_CONFIG,
+				&relay_dispatch_queue_size,
 			];
 			let relay_chain_state =
 				sp_state_machine::prove_read(relay_parent_state_backend, relevant_keys)
