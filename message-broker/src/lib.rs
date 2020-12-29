@@ -54,6 +54,9 @@ decl_storage! {
 		/// HRMP channels with the given recipients are awaiting to be processed. If a `ParaId` is
 		/// present in this vector then `OutboundHrmpMessages` for it should be not empty.
 		NonEmptyHrmpChannels: Vec<ParaId>;
+		/// The number of HRMP messages we observed in `on_initialize` and thus used that number for
+		/// announcing the weight of `on_initialize` and `on_finialize`.
+		AnnouncedHrmpMessagesPerCandidate: u32;
 	}
 }
 
@@ -123,20 +126,36 @@ decl_module! {
 			storage::unhashed::kill(well_known_keys::UPWARD_MESSAGES);
 			storage::unhashed::kill(well_known_keys::HRMP_OUTBOUND_MESSAGES);
 
-			weight += T::DbWeight::get().reads(1);
+			// Here, in `on_initialize` we must report the weight for both `on_initialize` and
+			// `on_finalize`.
+			//
+			// One complication here, is that the `host_configuration` is updated by an inherent and
+			// those are processed after the block initialization phase. Therefore, we have to be
+			// content only with the configuration as per the previous block. That means that
+			// the configuration can be either stale (or be abscent altogether in case of the
+			// beginning of the chain).
+			//
+			// In order to mitigate this, we do the following. At the time, we are only concerned
+			// about `hrmp_max_message_num_per_candidate`. We reserve the amount of weight to process
+			// the number of HRMP messages according to the potentially stale configuration. In
+			// `on_finalize` we will process only the maximum between the announced number of messages
+			// and the actual received in the fresh configuration.
+			//
+			// In the common case, they will be the same. In the case the actual value is smaller
+			// than the announced, we would waste some of weight. In the case the actual value is
+			// greater than the announced, we will miss opportunity to send a couple of messages.
+			weight += T::DbWeight::get().reads_writes(1, 1);
+			let hrmp_max_message_num_per_candidate =
+				<cumulus_parachain_upgrade::Module<T>>::host_configuration()
+					.map(|cfg| cfg.hrmp_max_message_num_per_candidate)
+					.unwrap_or(0);
+			AnnouncedHrmpMessagesPerCandidate::put(hrmp_max_message_num_per_candidate);
 
-			// TODO: Here we should do a tricky thing: we should check if the config is there,
-			// if it is, then, proceed normally. If it is not then means that we haven't devoted
-			// weight for processing messages and thus none should be sent out.
-
-			// let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
-
-			// // Reads and writes performed by `on_finalize`. This may actually turn out to be lower,
-			// // but we should err on the safe side.
-			// weight += T::DbWeight::get().reads_writes(
-			// 	3 + host_config.hrmp_max_message_num_per_candidate as u64,
-			// 	4 + host_config.hrmp_max_message_num_per_candidate as u64,
-			// );
+			// NOTE that the actual weight consumed by `on_finalize` may turn out lower.
+			weight += T::DbWeight::get().reads_writes(
+				3 + hrmp_max_message_num_per_candidate as u64,
+				4 + hrmp_max_message_num_per_candidate as u64,
+			);
 
 			weight
 		}
@@ -167,7 +186,7 @@ decl_module! {
 					)
 					.count();
 
-				// TODO: Return back messages that do not longer fit into the queue.
+				// TODO: #274 Return back messages that do not longer fit into the queue.
 
 				storage::unhashed::put(well_known_keys::UPWARD_MESSAGES, &up[0..num]);
 				*up = up.split_off(num);
@@ -181,11 +200,17 @@ decl_module! {
 			// - the sent out messages should be ordered by ascension of recipient para id.
 			// - the capacity and total size of the channel is limited,
 			// - the maximum size of a message is limited (and can potentially be changed),
+
 			let mut non_empty_hrmp_channels = NonEmptyHrmpChannels::get();
-			let outbound_hrmp_num = cmp::min(
-				host_config.hrmp_max_message_num_per_candidate as usize,
-				non_empty_hrmp_channels.len(),
-			);
+			// The number of messages we can send is limited by all of:
+			// - the number of non empty channels
+			// - the maximum number of messages per candidate according to the fresh config
+			// - the maximum number of messages per candidate according to the stale config
+			let outbound_hrmp_num =
+				non_empty_hrmp_channels.len()
+					.min(host_config.hrmp_max_message_num_per_candidate as usize)
+					.min(AnnouncedHrmpMessagesPerCandidate::get() as usize);
+
 			let mut outbound_hrmp_messages = Vec::with_capacity(outbound_hrmp_num);
 			let mut prune_empty = Vec::with_capacity(outbound_hrmp_num);
 
@@ -196,7 +221,7 @@ decl_module! {
 				{
 					Ok(m) => m,
 					Err(_) => {
-						// TODO: This means that there is no such channel anymore. Means that we should
+						// TODO: #274 This means that there is no such channel anymore. Means that we should
 						// return back the messages from this channel.
 						//
 						// Until then pretend it became empty
@@ -235,7 +260,7 @@ decl_module! {
 					// message was buffered. While it's possible to make another iteration to fetch
 					// the next message, we just keep going here to not complicate the logic too much.
 					//
-					// TODO: Return back this message to sender.
+					// TODO: #274 Return back this message to sender.
 					continue;
 				}
 
