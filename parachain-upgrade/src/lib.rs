@@ -360,6 +360,7 @@ mod tests {
 
 	use codec::Encode;
 	use cumulus_primitives::{PersistedValidationData, TransientValidationData};
+	use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 	use frame_support::{
 		assert_ok,
 		dispatch::UnfilteredDispatchable,
@@ -405,6 +406,7 @@ mod tests {
 			apis: sp_version::create_apis_vec!([]),
 			transaction_version: 1,
 		};
+		pub const ParachainId: ParaId = ParaId::new(200);
 	}
 	impl frame_system::Config for Test {
 		type Origin = Origin;
@@ -432,6 +434,7 @@ mod tests {
 	impl Config for Test {
 		type Event = TestEvent;
 		type OnValidationData = ();
+		type SelfParaId = ParachainId;
 	}
 
 	type ParachainUpgrade = Module<Test>;
@@ -491,7 +494,9 @@ mod tests {
 		tests: Vec<BlockTest>,
 		pending_upgrade: Option<RelayChainBlockNumber>,
 		ran: bool,
-		vfp_maker: Option<Box<dyn Fn(&BlockTests, RelayChainBlockNumber) -> ValidationData>>,
+		relay_sproof_builder_hook: Option<
+			Box<dyn Fn(&BlockTests, RelayChainBlockNumber, &mut RelayStateSproofBuilder)>
+		>,
 	}
 
 	impl BlockTests {
@@ -532,11 +537,11 @@ mod tests {
 			})
 		}
 
-		fn with_validation_data<F>(mut self, f: F) -> Self
+		fn with_relay_sproof_builder<F>(mut self, f: F) -> Self
 		where
-			F: 'static + Fn(&BlockTests, RelayChainBlockNumber) -> ValidationData,
+			F: 'static + Fn(&BlockTests, RelayChainBlockNumber, &mut RelayStateSproofBuilder)
 		{
-			self.vfp_maker = Some(Box::new(f));
+			self.relay_sproof_builder_hook = Some(Box::new(f));
 			self
 		}
 
@@ -565,24 +570,21 @@ mod tests {
 					);
 
 					// now mess with the storage the way validate_block does
-					let vfp = match self.vfp_maker {
-						None => ValidationData {
-							persisted: PersistedValidationData {
-								block_number: *n as RelayChainBlockNumber,
-								..Default::default()
-							},
-							transient: TransientValidationData {
-								max_code_size: 10 * 1024 * 1024, // 10 mb
-								code_upgrade_allowed: if self.pending_upgrade.is_some() {
-									None
-								} else {
-									Some(*n as RelayChainBlockNumber + 1000)
-								},
-								..Default::default()
-							},
+					let mut sproof_builder = RelayStateSproofBuilder::default();
+					if let Some(ref hook) = self.relay_sproof_builder_hook {
+						hook(self, *n as RelayChainBlockNumber, &mut sproof_builder);
+					}
+					let (relay_storage_root, relay_chain_state) =
+						sproof_builder.into_state_root_and_proof();
+					let vfp = ValidationData {
+						persisted: PersistedValidationData {
+							block_number: *n as RelayChainBlockNumber,
+							relay_storage_root,
+							..Default::default()
 						},
-						Some(ref maker) => maker(self, *n as RelayChainBlockNumber),
+						transient: TransientValidationData::default(),
 					};
+
 					storage::unhashed::put(VALIDATION_DATA, &vfp);
 					storage::unhashed::kill(NEW_VALIDATION_CODE);
 
@@ -593,7 +595,7 @@ mod tests {
 						inherent_data
 							.put_data(INHERENT_IDENTIFIER, &ValidationDataType {
 								validation_data: vfp.clone(),
-								relay_chain_state: sp_state_machine::StorageProof::empty(),
+								relay_chain_state,
 							})
 							.expect("failed to put VFP inherent");
 						inherent_data
@@ -665,6 +667,9 @@ mod tests {
 	#[test]
 	fn events() {
 		BlockTests::new()
+			.with_relay_sproof_builder(|_, _, builder| {
+				builder.host_config.validation_upgrade_delay = 1000;
+			})
 			.add_with_post_test(
 				123,
 				|| {
@@ -697,6 +702,9 @@ mod tests {
 	#[test]
 	fn non_overlapping() {
 		BlockTests::new()
+			.with_relay_sproof_builder(|_, _, builder| {
+				builder.host_config.validation_upgrade_delay = 1000;
+			})
 			.add(123, || {
 				assert_ok!(ParachainUpgrade::schedule_upgrade(
 					RawOrigin::Root.into(),
@@ -705,7 +713,7 @@ mod tests {
 			})
 			.add(234, || {
 				assert_eq!(
-					ParachainUpgrade::schedule_upgrade(RawOrigin::Root.into(), Default::default(),),
+					ParachainUpgrade::schedule_upgrade(RawOrigin::Root.into(), Default::default()),
 					Err(Error::<Test>::OverlappingUpgrades.into()),
 				)
 			});
@@ -743,16 +751,8 @@ mod tests {
 	#[test]
 	fn checks_size() {
 		BlockTests::new()
-			.with_validation_data(|_, n| ValidationData {
-				persisted: PersistedValidationData {
-					block_number: n,
-					..Default::default()
-				},
-				transient: TransientValidationData {
-					max_code_size: 32,
-					code_upgrade_allowed: Some(n + 1000),
-					..Default::default()
-				},
+			.with_relay_sproof_builder(|_, _, builder| {
+				builder.host_config.max_code_size = 8;
 			})
 			.add(123, || {
 				assert_eq!(
