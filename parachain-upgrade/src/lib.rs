@@ -31,8 +31,8 @@
 
 use cumulus_primitives::{
 	inherents::{ValidationDataType, VALIDATION_DATA_IDENTIFIER as INHERENT_IDENTIFIER},
-	well_known_keys::{NEW_VALIDATION_CODE, VALIDATION_DATA},
-	OnValidationData, ValidationData, relay_chain, ParaId,
+	well_known_keys::{NEW_VALIDATION_CODE, VALIDATION_DATA}, AbridgedHostConfiguration,
+	AbridgedHrmpChannel, OnValidationData, ValidationData, ParaId, relay_chain,
 };
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
@@ -45,11 +45,10 @@ use sp_inherents::{InherentData, InherentIdentifier, ProvideInherent};
 use sp_std::vec::Vec;
 use sp_runtime::traits::HashFor;
 
-pub mod relay_config;
-
 #[derive(codec::Encode, codec::Decode)]
 pub struct RelayStateDigest {
 	pub relay_dispatch_queue_size: (u32, u32),
+	pub egress_channels: Vec<(ParaId, AbridgedHrmpChannel)>,
 }
 
 /// The pallet's configuration trait.
@@ -80,7 +79,7 @@ decl_storage! {
 
 		/// The host configuration that was obtained from the relay parent and submitted via the
 		/// inherent.
-		HostConfiguration get(fn host_configuration): Option<relay_config::HostConfiguration>;
+		HostConfiguration get(fn host_configuration): Option<AbridgedHostConfiguration>;
 
 		/// The last relay parent block number at which we signalled the code upgrade.
 		LastUpgrade: relay_chain::BlockNumber;
@@ -155,7 +154,7 @@ decl_module! {
 				.expect("error retrieving the configuration")
 				.expect("the configuration is not set");
 
-				let host_config = relay_config::HostConfiguration::decode(&mut &raw_configuration[..])
+				let host_config = AbridgedHostConfiguration::decode(&mut &raw_configuration[..])
 					.expect("can't decode host configuration; perhaps the relay-chain definition was updated?");
 
 				frame_support::debug::print!("host_config: {:?}", host_config);
@@ -171,8 +170,33 @@ decl_module! {
 					).expect("relay dispatch queue size encoding")
 				}).unwrap_or((0, 0));
 
+				let egress_channels = backend.storage(
+					&relay_chain::well_known_keys::hrmp_egress_channel_index(T::SelfParaId::get()),
+				).expect("error retrieving the hrmp egress channel index");
+				let egress_channels = egress_channels.map(|raw| {
+					<Vec<ParaId>>::decode(
+						&mut &raw[..],
+					).expect("hrmp egress channel index encoding")
+				}).unwrap_or(Vec::new());
+
+				let mut egress_channels = egress_channels.into_iter().map(|recipient| {
+					let channel_id = relay_chain::v1::HrmpChannelId {
+						sender: T::SelfParaId::get(),
+						recipient,
+					};
+					let hrmp_channel = backend.storage(&relay_chain::well_known_keys::hrmp_channels(channel_id))
+						.expect("error retrieving the hrmp channel")
+						.expect("hrmp channel is empty");
+					let hrmp_channel = AbridgedHrmpChannel::decode(&mut &hrmp_channel[..])
+						.expect("decoding of channel failed");
+
+					(recipient, hrmp_channel)
+				}).collect::<Vec<_>>();
+				egress_channels.sort_by_key(|(recipient, _)| *recipient);
+
 				RelevantRelayState::put(RelayStateDigest {
 					relay_dispatch_queue_size,
+					egress_channels,
 				});
 
 				HostConfiguration::put(host_config);

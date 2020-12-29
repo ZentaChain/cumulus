@@ -43,7 +43,7 @@ use polkadot_node_subsystem::messages::{CollationGenerationMessage, CollatorProt
 use polkadot_overseer::OverseerHandler;
 use polkadot_primitives::v1::{
 	Block as PBlock, BlockData, BlockNumber as PBlockNumber, CollatorPair, Hash as PHash, HeadData,
-	Id as ParaId, PoV, UpwardMessage,
+	Id as ParaId, PoV, UpwardMessage, HrmpChannelId,
 };
 use polkadot_service::RuntimeApiCollection;
 
@@ -215,10 +215,6 @@ where
 			.ok()?;
 
 		let validation_data = {
-			info!("fetching some juicy proofs at relay-parent {:?}", relay_parent);
-			info!("PVD relay block number {}", validation_data.persisted.block_number);
-			info!("number of relay-parent: {:?}", self.polkadot_client.number(relay_parent).unwrap_or_default());
-
 			let relay_parent_state_backend = self
 				.polkadot_backend
 				.state_at(BlockId::Hash(relay_parent))
@@ -230,14 +226,47 @@ where
 					)
 				})
 				.ok()?;
-			info!("state root is {:?}", relay_parent_state_backend.storage_root(std::iter::empty()).0);
 
-			let relay_dispatch_queue_size =
-				relay_chain::well_known_keys::relay_dispatch_queue_size(self.para_id);
-			let relevant_keys = &[
-				relay_chain::well_known_keys::ACTIVE_CONFIG,
-				&relay_dispatch_queue_size,
-			];
+			let egress_channels = relay_parent_state_backend
+				.storage(&relay_chain::well_known_keys::hrmp_egress_channel_index(
+					self.para_id,
+				))
+				.map_err(|e| {
+					error!(
+						target: "cumulus-collator",
+						"Cannot obtain the hrmp egress channel index: {:?}",
+						e,
+					)
+				})
+				.ok()?;
+			let egress_channels = egress_channels
+				.map(|raw| <Vec<ParaId>>::decode(&mut &raw[..]))
+				.transpose()
+				.map_err(|e| {
+					error!(
+						target: "cumulus-collator",
+						"Cannot decode the hrmp egress channel index: {:?}",
+						e,
+					)
+				})
+				.ok()?
+				.unwrap_or(vec![]);
+
+			let mut relevant_keys = vec![];
+			relevant_keys.push(relay_chain::well_known_keys::ACTIVE_CONFIG.to_vec());
+			relevant_keys.push(relay_chain::well_known_keys::relay_dispatch_queue_size(
+				self.para_id,
+			));
+			relevant_keys.push(relay_chain::well_known_keys::hrmp_egress_channel_index(
+				self.para_id,
+			));
+			relevant_keys.extend(egress_channels.into_iter().map(|recipient| {
+				relay_chain::well_known_keys::hrmp_channels(HrmpChannelId {
+					sender: self.para_id,
+					recipient,
+				})
+			}));
+
 			let relay_chain_state =
 				sp_state_machine::prove_read(relay_parent_state_backend, relevant_keys)
 					.map_err(|e| {

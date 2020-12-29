@@ -128,7 +128,7 @@ decl_module! {
 			// TODO: Here we should do a tricky thing: we should check if the config is there,
 			// if it is, then, proceed normally. If it is not then means that we haven't devoted
 			// weight for processing messages and thus none should be sent out.
-			
+
 			// let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
 
 			// // Reads and writes performed by `on_finalize`. This may actually turn out to be lower,
@@ -143,11 +143,10 @@ decl_module! {
 
 		fn on_finalize() {
 			let host_config = <cumulus_parachain_upgrade::Module<T>>::host_configuration().unwrap();
+			let relevant_relay_state = <cumulus_parachain_upgrade::Module<T>>::relevant_relay_state().unwrap();
 
 			<Self as Store>::PendingUpwardMessages::mutate(|up| {
-				let (count, size) = <cumulus_parachain_upgrade::Module<T>>::relevant_relay_state()
-					.unwrap()
-					.relay_dispatch_queue_size;
+				let (count, size) = relevant_relay_state.relay_dispatch_queue_size;
 
 				let available_capacity = cmp::min(
 					host_config.max_upward_queue_count.saturating_sub(count),
@@ -168,13 +167,20 @@ decl_module! {
 					)
 					.count();
 
+				// TODO: Return back messages that do not longer fit into the queue.
+
 				storage::unhashed::put(well_known_keys::UPWARD_MESSAGES, &up[0..num]);
 				*up = up.split_off(num);
 			});
 
-			// Sending HRMP messages is a little bit more involved. On top of the number of messages
-			// per block limit, there is also a constraint that it's possible to send only a single
-			// message to a given recipient per candidate.
+			// Sending HRMP messages is a little bit more involved. There are the following
+			// constraints:
+			//
+			// - a channel should exist (and it can be closed while a message is buffered),
+			// - at most one message can be sent in a channel,
+			// - the sent out messages should be ordered by ascension of recipient para id.
+			// - the capacity and total size of the channel is limited,
+			// - the maximum size of a message is limited (and can potentially be changed),
 			let mut non_empty_hrmp_channels = NonEmptyHrmpChannels::get();
 			let outbound_hrmp_num = cmp::min(
 				host_config.hrmp_max_message_num_per_candidate as usize,
@@ -183,24 +189,65 @@ decl_module! {
 			let mut outbound_hrmp_messages = Vec::with_capacity(outbound_hrmp_num);
 			let mut prune_empty = Vec::with_capacity(outbound_hrmp_num);
 
-			for &recipient in non_empty_hrmp_channels.iter().take(outbound_hrmp_num) {
-				let (message_payload, became_empty) =
-					<Self as Store>::OutboundHrmpMessages::mutate(&recipient, |v| {
-						// this panics if `v` is empty. However, we are iterating only once over non-empty
-						// channels, therefore it cannot panic.
-						let first = v.remove(0);
-						let became_empty = v.is_empty();
-						(first, became_empty)
-					});
+			for &recipient in non_empty_hrmp_channels.iter() {
+				let idx = match relevant_relay_state
+					.egress_channels
+					.binary_search_by_key(&recipient, |(recipient, _)| *recipient)
+				{
+					Ok(m) => m,
+					Err(_) => {
+						// TODO: This means that there is no such channel anymore. Means that we should
+						// return back the messages from this channel.
+						//
+						// Until then pretend it became empty
+						prune_empty.push(recipient);
+						continue;
+					}
+				};
+
+				let channel_meta = &relevant_relay_state.egress_channels[idx].1;
+				if channel_meta.msg_count + 1 > channel_meta.max_capacity {
+					// The channel is at its capacity. Skip it for now.
+					continue;
+				}
+
+				let mut pending = <Self as Store>::OutboundHrmpMessages::get(&recipient);
+
+				// This panics if `v` is empty. However, we are iterating only once over non-empty
+				// channels, therefore it cannot panic.
+				let message_payload = pending.remove(0);
+				let became_empty = pending.is_empty();
+
+				if channel_meta.total_size + message_payload.len() as u32 > channel_meta.max_total_size {
+					// Sending this message will make the channel total size overflow. Skip it for now.
+					continue;
+				}
+
+				// If we reached here, then the channel has capacity to receive this message. However,
+				// it doesn't mean that we are sending it just yet.
+				<Self as Store>::OutboundHrmpMessages::insert(&recipient, pending);
+				if became_empty {
+					prune_empty.push(recipient);
+				}
+
+				if message_payload.len() as u32 > channel_meta.max_message_size {
+					// Apparently, the max message size was decreased since the message while the
+					// message was buffered. While it's possible to make another iteration to fetch
+					// the next message, we just keep going here to not complicate the logic too much.
+					//
+					// TODO: Return back this message to sender.
+					continue;
+				}
 
 				outbound_hrmp_messages.push(OutboundHrmpMessage {
 					recipient,
 					data: message_payload,
 				});
-				if became_empty {
-					prune_empty.push(recipient);
-				}
 			}
+
+			// Sort the outbound messages by asceding recipient para id to satisfy the acceptance
+			// criteria requirement.
+			outbound_hrmp_messages.sort_by_key(|m| m.recipient);
 
 			// Prune hrmp channels that became empty. Additionally, because it may so happen that we
 			// only gave attention to some channels in `non_empty_hrmp_channels` it's important to
@@ -247,13 +294,48 @@ impl<T: Config> Module<T> {
 	}
 
 	pub fn send_hrmp_message(message: OutboundHrmpMessage) -> Result<(), SendHorizontalErr> {
-		// TODO:
-		// (a) check against the size limit sourced from the channel in question configuration
-		// (b) check if the channel to the recipient is actually opened.
-
 		let OutboundHrmpMessage { recipient, data } = message;
-		<Self as Store>::OutboundHrmpMessages::append(&recipient, data);
 
+		// First, check if the message is addressed into an opened channel.
+		//
+		// Note, that we are using `relevant_relay_state` which may be from the previous
+		// block, in case this is called from `on_initialize`, i.e. before the inherent with fresh
+		// data is submitted.
+		//
+		// That shouldn't be a problem though because this is anticipated and already can happen.
+		// This is because sending implies that a message is buffered until there is space to send
+		// a message in the candidate. After a while waiting in a buffer, it may be discovered that
+		// the channel to which a message were addressed is now closed. Another possibility, is that
+		// the maximum message size was decreased so that a message in the bufer doesn't fit. Should
+		// any of that happen the sender should be notified about the message was discarded.
+		//
+		// Here it a similar case, with the difference that the realization that the channel is closed
+		// came the same block.
+		let relevant_relay_state = match <cumulus_parachain_upgrade::Module<T>>::relevant_relay_state() {
+			Some(s) => s,
+			None => {
+				// This storage field should carry over from the previous block. So if it's None
+				// then it must be that this is an edge-case where a message is attempted to be
+				// sent at the first block. It should be safe to assume that there are no channels
+				// opened at all so early. At least, relying on this assumption seems to be a better
+				// tradeoff, compared to introducing an error variant that the clients should be
+				// prepared to handle.
+				return Err(SendHorizontalErr::NoChannel)
+			}
+		};
+		let channel_meta = match relevant_relay_state
+			.egress_channels
+			.binary_search_by_key(&recipient, |(recipient, _)| *recipient)
+		{
+			Ok(idx) => &relevant_relay_state.egress_channels[idx].1,
+			Err(_) => return Err(SendHorizontalErr::NoChannel),
+		};
+		if data.len() as u32 > channel_meta.max_message_size {
+			return Err(SendHorizontalErr::TooBig)
+		}
+
+		// And then at last update the storage.
+		<Self as Store>::OutboundHrmpMessages::append(&recipient, data);
 		<Self as Store>::NonEmptyHrmpChannels::mutate(|v| {
 			if !v.contains(&recipient) {
 				v.push(recipient);
