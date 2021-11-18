@@ -568,6 +568,7 @@
 <span id="568">568</span>
 <span id="569">569</span>
 <span id="570">570</span>
+<span id="571">571</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2019-2021 Parity Technologies (UK) Ltd.</span>
 <span class="comment">// This file is part of Polkadot.</span>
 
@@ -1092,6 +1093,7 @@
 
 		<span class="self">self</span>.<span class="ident">spawner</span>.<span class="ident">spawn</span>(
 			<span class="string">&quot;cumulus-wait-to-announce&quot;</span>,
+			<span class="prelude-val">None</span>,
 			<span class="kw">async</span> <span class="kw">move</span> {
 				<span class="macro">tracing::debug!</span>(
 					<span class="ident">target</span>: <span class="string">&quot;cumulus-network&quot;</span>,

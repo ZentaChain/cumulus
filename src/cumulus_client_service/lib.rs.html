@@ -357,6 +357,10 @@
 <span id="357">357</span>
 <span id="358">358</span>
 <span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2020-2021 Parity Technologies (UK) Ltd.</span>
 <span class="comment">// This file is part of Cumulus.</span>
 
@@ -596,7 +600,9 @@
 			<span class="self">self</span>.<span class="ident">announce_block</span>,
 		);
 
-		<span class="self">self</span>.<span class="ident">task_manager</span>.<span class="ident">spawn_essential_handle</span>().<span class="ident">spawn</span>(<span class="string">&quot;cumulus-consensus&quot;</span>, <span class="ident">consensus</span>);
+		<span class="self">self</span>.<span class="ident">task_manager</span>
+			.<span class="ident">spawn_essential_handle</span>()
+			.<span class="ident">spawn</span>(<span class="string">&quot;cumulus-consensus&quot;</span>, <span class="prelude-val">None</span>, <span class="ident">consensus</span>);
 	}
 }
 
@@ -640,9 +646,11 @@
 			<span class="self">self</span>.<span class="ident">para_id</span>,
 		);
 
-		<span class="self">self</span>.<span class="ident">task_manager</span>
-			.<span class="ident">spawn_essential_handle</span>()
-			.<span class="ident">spawn</span>(<span class="string">&quot;cumulus-pov-recovery&quot;</span>, <span class="ident">pov_recovery</span>.<span class="ident">run</span>());
+		<span class="self">self</span>.<span class="ident">task_manager</span>.<span class="ident">spawn_essential_handle</span>().<span class="ident">spawn</span>(
+			<span class="string">&quot;cumulus-pov-recovery&quot;</span>,
+			<span class="prelude-val">None</span>,
+			<span class="ident">pov_recovery</span>.<span class="ident">run</span>(),
+		);
 
 		<span class="prelude-val">Ok</span>(())
 	}

@@ -23,7 +23,6 @@ sourcesIndex["cumulus_test_client"] = {"name":"","files":["block_builder.rs","li
 sourcesIndex["cumulus_test_relay_sproof_builder"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["cumulus_test_relay_validation_worker_provider"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["cumulus_test_runtime"] = {"name":"","files":["lib.rs"]};
-sourcesIndex["cumulus_test_runtime_upgrade"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["cumulus_test_service"] = {"name":"","files":["chain_spec.rs","genesis.rs","lib.rs"]};
 sourcesIndex["pallet_asset_tx_payment"] = {"name":"","files":["lib.rs","payment.rs"]};
 sourcesIndex["pallet_collator_selection"] = {"name":"","files":["lib.rs","weights.rs"]};

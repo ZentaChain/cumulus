@@ -1633,7 +1633,7 @@
 				<span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">hash</span>) <span class="op">=</span> <span class="ident"><span class="self">Self</span>::validate_authorized_upgrade</span>(<span class="ident">code</span>) {
 					<span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ValidTransaction</span> {
 						<span class="ident">priority</span>: <span class="number">100</span>,
-						<span class="ident">requires</span>: <span class="macro">vec!</span>[],
+						<span class="ident">requires</span>: <span class="ident">Vec::new</span>(),
 						<span class="ident">provides</span>: <span class="macro">vec!</span>[<span class="ident">hash</span>.<span class="ident">as_ref</span>().<span class="ident">to_vec</span>()],
 						<span class="ident">longevity</span>: <span class="ident">TransactionLongevity::max_value</span>(),
 						<span class="ident">propagate</span>: <span class="bool-val">true</span>,
@@ -2032,7 +2032,7 @@
 	) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">frame_support::inherent::CheckInherentsResult</span>;
 }
 
-<span class="doccomment">/// Implements [`BlockNumberProvider`] that returns relaychain block number fetched from</span>
+<span class="doccomment">/// Implements [`BlockNumberProvider`] that returns relay chain block number fetched from</span>
 <span class="doccomment">/// validation data.</span>
 <span class="doccomment">/// NTOE: When validation data is not available (e.g. within on_initialize), 0 will be returned.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">RelaychainBlockNumberProvider</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">sp_std::marker::PhantomData</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>);

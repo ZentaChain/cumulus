@@ -705,14 +705,6 @@
 <span id="705">705</span>
 <span id="706">706</span>
 <span id="707">707</span>
-<span id="708">708</span>
-<span id="709">709</span>
-<span id="710">710</span>
-<span id="711">711</span>
-<span id="712">712</span>
-<span id="713">713</span>
-<span id="714">714</span>
-<span id="715">715</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2019-2021 Parity Technologies (UK) Ltd.</span>
 <span class="comment">// This file is part of Cumulus.</span>
 
@@ -779,7 +771,7 @@
 	<span class="ident">AccountPublic::from</span>(<span class="ident">get_from_seed</span>::<span class="op">&lt;</span><span class="ident">TPublic</span><span class="op">&gt;</span>(<span class="ident">seed</span>)).<span class="ident">into_account</span>()
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_chain_spec</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_chain_spec</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ChainSpec</span> {
 	<span class="ident">ChainSpec::from_genesis</span>(
 		<span class="string">&quot;Local Testnet&quot;</span>,
 		<span class="string">&quot;local_testnet&quot;</span>,
@@ -802,32 +794,32 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Eve//stash&quot;</span>),
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Ferdie//stash&quot;</span>),
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_shell_chain_spec</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ShellChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_shell_chain_spec</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ShellChainSpec</span> {
 	<span class="ident">ShellChainSpec::from_genesis</span>(
 		<span class="string">&quot;Shell Local Testnet&quot;</span>,
 		<span class="string">&quot;shell_local_testnet&quot;</span>,
 		<span class="ident">ChainType::Local</span>,
-		<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> <span class="ident">shell_testnet_genesis</span>(<span class="ident">id</span>),
-		<span class="macro">vec!</span>[],
+		<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> <span class="ident">shell_testnet_genesis</span>(<span class="number">1000</span>.<span class="ident">into</span>()),
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">staging_test_net</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">staging_test_net</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ChainSpec</span> {
 	<span class="ident">ChainSpec::from_genesis</span>(
 		<span class="string">&quot;Staging Testnet&quot;</span>,
 		<span class="string">&quot;staging_testnet&quot;</span>,
@@ -846,14 +838,14 @@
 				<span class="macro">vec!</span>[
 					<span class="macro">hex!</span>[<span class="string">&quot;9ed7705e3c7da027ba0583a22a3212042f7e715d3c168ba14f1424e2bc111d00&quot;</span>].<span class="ident">into</span>()
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
 		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
@@ -868,7 +860,6 @@
 			<span class="ident">code</span>: <span class="ident">rococo_parachain_runtime::WASM_BINARY</span>
 				.<span class="ident">expect</span>(<span class="string">&quot;WASM binary was not build, please build it!&quot;</span>)
 				.<span class="ident">to_vec</span>(),
-			<span class="ident">changes_trie_config</span>: <span class="ident">Default::default</span>(),
 		},
 		<span class="ident">balances</span>: <span class="ident">rococo_parachain_runtime::BalancesConfig</span> {
 			<span class="ident">balances</span>: <span class="ident">endowed_accounts</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> (<span class="ident">k</span>, <span class="number">1</span> <span class="op">&lt;</span><span class="op">&lt;</span> <span class="number">60</span>)).<span class="ident">collect</span>(),
@@ -887,7 +878,6 @@
 			<span class="ident">code</span>: <span class="ident">shell_runtime::WASM_BINARY</span>
 				.<span class="ident">expect</span>(<span class="string">&quot;WASM binary was not build, please build it!&quot;</span>)
 				.<span class="ident">to_vec</span>(),
-			<span class="ident">changes_trie_config</span>: <span class="ident">Default::default</span>(),
 		},
 		<span class="ident">parachain_info</span>: <span class="ident">shell_runtime::ParachainInfoConfig</span> { <span class="ident">parachain_id</span> },
 		<span class="ident">parachain_system</span>: <span class="ident">Default::default</span>(),
@@ -909,7 +899,7 @@
 <span class="kw">const</span> <span class="ident">WESTMINT_ED</span>: <span class="ident">StatemintBalance</span> <span class="op">=</span> <span class="ident">westmint_runtime::constants::currency::EXISTENTIAL_DEPOSIT</span>;
 
 <span class="doccomment">/// Helper function to generate a crypto pair from seed</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_pair_from_seed</span><span class="op">&lt;</span><span class="ident">TPublic</span>: <span class="ident">Public</span><span class="op">&gt;</span>(<span class="ident">seed</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="op">&lt;</span><span class="ident">TPublic::Pair</span> <span class="kw">as</span> <span class="ident">Pair</span><span class="op">&gt;</span><span class="ident">::Public</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_public_from_seed</span><span class="op">&lt;</span><span class="ident">TPublic</span>: <span class="ident">Public</span><span class="op">&gt;</span>(<span class="ident">seed</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="op">&lt;</span><span class="ident">TPublic::Pair</span> <span class="kw">as</span> <span class="ident">Pair</span><span class="op">&gt;</span><span class="ident">::Public</span> {
 	<span class="ident">TPublic::Pair::from_string</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;//{}&quot;</span>, <span class="ident">seed</span>), <span class="prelude-val">None</span>)
 		.<span class="ident">expect</span>(<span class="string">&quot;static values are valid; qed&quot;</span>)
 		.<span class="ident">public</span>()
@@ -919,7 +909,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// This function&#39;s return type must always match the session keys of the chain in tuple format.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_collator_keys_from_seed</span>(<span class="ident">seed</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">AuraId</span> {
-	<span class="ident">get_pair_from_seed</span>::<span class="op">&lt;</span><span class="ident">AuraId</span><span class="op">&gt;</span>(<span class="ident">seed</span>)
+	<span class="ident">get_public_from_seed</span>::<span class="op">&lt;</span><span class="ident">AuraId</span><span class="op">&gt;</span>(<span class="ident">seed</span>)
 }
 
 <span class="doccomment">/// Generate the session keys from individual elements.</span>
@@ -943,7 +933,7 @@
 	<span class="ident">westmint_runtime::SessionKeys</span> { <span class="ident">aura</span>: <span class="ident">keys</span> }
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemint_development_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemintChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemint_development_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemintChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;DOT&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">10</span>.<span class="ident">into</span>());
@@ -967,18 +957,18 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Alice//stash&quot;</span>),
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Bob//stash&quot;</span>),
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;polkadot-dev&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;polkadot-dev&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemint_local_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemintChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemint_local_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemintChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;DOT&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">10</span>.<span class="ident">into</span>());
@@ -1016,14 +1006,14 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Eve//stash&quot;</span>),
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Ferdie//stash&quot;</span>),
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;polkadot-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;polkadot-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
@@ -1037,7 +1027,6 @@
 			<span class="ident">code</span>: <span class="ident">statemint_runtime::WASM_BINARY</span>
 				.<span class="ident">expect</span>(<span class="string">&quot;WASM binary was not build, please build it!&quot;</span>)
 				.<span class="ident">to_vec</span>(),
-			<span class="ident">changes_trie_config</span>: <span class="ident">Default::default</span>(),
 		},
 		<span class="ident">balances</span>: <span class="ident">statemint_runtime::BalancesConfig</span> {
 			<span class="ident">balances</span>: <span class="ident">endowed_accounts</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> (<span class="ident">k</span>, <span class="ident">STATEMINT_ED</span> <span class="op">*</span> <span class="number">4096</span>)).<span class="ident">collect</span>(),
@@ -1050,12 +1039,11 @@
 		},
 		<span class="ident">session</span>: <span class="ident">statemint_runtime::SessionConfig</span> {
 			<span class="ident">keys</span>: <span class="ident">invulnerables</span>
-				.<span class="ident">iter</span>()
-				.<span class="ident">cloned</span>()
+				.<span class="ident">into_iter</span>()
 				.<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">acc</span>, <span class="ident">aura</span>)<span class="op">|</span> {
 					(
 						<span class="ident">acc</span>.<span class="ident">clone</span>(),                  <span class="comment">// account id</span>
-						<span class="ident">acc</span>.<span class="ident">clone</span>(),                  <span class="comment">// validator id</span>
+						<span class="ident">acc</span>,                          <span class="comment">// validator id</span>
 						<span class="ident">statemint_session_keys</span>(<span class="ident">aura</span>), <span class="comment">// session keys</span>
 					)
 				})
@@ -1069,7 +1057,7 @@
 	}
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_development_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_development_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;KSM&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1093,18 +1081,18 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Alice//stash&quot;</span>),
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Bob//stash&quot;</span>),
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama-dev&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama-dev&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_local_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_local_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;KSM&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1142,18 +1130,18 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Eve//stash&quot;</span>),
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Ferdie//stash&quot;</span>),
 				],
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">statemine_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">StatemineChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;KSM&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1193,15 +1181,15 @@
 							.<span class="ident">unchecked_into</span>(),
 					),
 				],
-				<span class="macro">vec!</span>[],
-				<span class="ident">id</span>,
+				<span class="ident">Vec::new</span>(),
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;kusama&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
@@ -1215,7 +1203,6 @@
 			<span class="ident">code</span>: <span class="ident">statemine_runtime::WASM_BINARY</span>
 				.<span class="ident">expect</span>(<span class="string">&quot;WASM binary was not build, please build it!&quot;</span>)
 				.<span class="ident">to_vec</span>(),
-			<span class="ident">changes_trie_config</span>: <span class="ident">Default::default</span>(),
 		},
 		<span class="ident">balances</span>: <span class="ident">statemine_runtime::BalancesConfig</span> {
 			<span class="ident">balances</span>: <span class="ident">endowed_accounts</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> (<span class="ident">k</span>, <span class="ident">STATEMINE_ED</span> <span class="op">*</span> <span class="number">4096</span>)).<span class="ident">collect</span>(),
@@ -1228,12 +1215,11 @@
 		},
 		<span class="ident">session</span>: <span class="ident">statemine_runtime::SessionConfig</span> {
 			<span class="ident">keys</span>: <span class="ident">invulnerables</span>
-				.<span class="ident">iter</span>()
-				.<span class="ident">cloned</span>()
+				.<span class="ident">into_iter</span>()
 				.<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">acc</span>, <span class="ident">aura</span>)<span class="op">|</span> {
 					(
 						<span class="ident">acc</span>.<span class="ident">clone</span>(),                  <span class="comment">// account id</span>
-						<span class="ident">acc</span>.<span class="ident">clone</span>(),                  <span class="comment">// validator id</span>
+						<span class="ident">acc</span>,                          <span class="comment">// validator id</span>
 						<span class="ident">statemine_session_keys</span>(<span class="ident">aura</span>), <span class="comment">// session keys</span>
 					)
 				})
@@ -1245,7 +1231,7 @@
 	}
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_development_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_development_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;WND&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1270,18 +1256,18 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Bob//stash&quot;</span>),
 				],
 				<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Alice&quot;</span>),
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_local_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_local_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;WND&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1320,18 +1306,18 @@
 					<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Ferdie//stash&quot;</span>),
 				],
 				<span class="ident">get_account_id_from_seed</span>::<span class="op">&lt;</span><span class="ident">sr25519::Public</span><span class="op">&gt;</span>(<span class="string">&quot;Alice&quot;</span>),
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend-local&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_config</span>(<span class="ident">id</span>: <span class="ident">ParaId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">westmint_config</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">WestmintChainSpec</span> {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">properties</span> <span class="op">=</span> <span class="ident">sc_chain_spec::Properties::new</span>();
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenSymbol&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;WND&quot;</span>.<span class="ident">into</span>());
 	<span class="ident">properties</span>.<span class="ident">insert</span>(<span class="string">&quot;tokenDecimals&quot;</span>.<span class="ident">into</span>(), <span class="number">12</span>.<span class="ident">into</span>());
@@ -1371,17 +1357,17 @@
 							.<span class="ident">unchecked_into</span>(),
 					),
 				],
-				<span class="macro">vec!</span>[],
+				<span class="ident">Vec::new</span>(),
 				<span class="comment">// re-use the Westend sudo key</span>
 				<span class="macro">hex!</span>(<span class="string">&quot;6648d7f3382690650c681aba1b993cd11e54deb4df21a3a18c3e2177de9f7342&quot;</span>).<span class="ident">into</span>(),
-				<span class="ident">id</span>,
+				<span class="number">1000</span>.<span class="ident">into</span>(),
 			)
 		},
-		<span class="macro">vec!</span>[],
+		<span class="ident">Vec::new</span>(),
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">None</span>,
 		<span class="prelude-val">Some</span>(<span class="ident">properties</span>),
-		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="ident">id</span>.<span class="ident">into</span>() },
+		<span class="ident">Extensions</span> { <span class="ident">relay_chain</span>: <span class="string">&quot;westend&quot;</span>.<span class="ident">into</span>(), <span class="ident">para_id</span>: <span class="number">1000</span> },
 	)
 }
 
@@ -1396,7 +1382,6 @@
 			<span class="ident">code</span>: <span class="ident">westmint_runtime::WASM_BINARY</span>
 				.<span class="ident">expect</span>(<span class="string">&quot;WASM binary was not build, please build it!&quot;</span>)
 				.<span class="ident">to_vec</span>(),
-			<span class="ident">changes_trie_config</span>: <span class="ident">Default::default</span>(),
 		},
 		<span class="ident">balances</span>: <span class="ident">westmint_runtime::BalancesConfig</span> {
 			<span class="ident">balances</span>: <span class="ident">endowed_accounts</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> (<span class="ident">k</span>, <span class="ident">WESTMINT_ED</span> <span class="op">*</span> <span class="number">4096</span>)).<span class="ident">collect</span>(),
@@ -1410,12 +1395,11 @@
 		},
 		<span class="ident">session</span>: <span class="ident">westmint_runtime::SessionConfig</span> {
 			<span class="ident">keys</span>: <span class="ident">invulnerables</span>
-				.<span class="ident">iter</span>()
-				.<span class="ident">cloned</span>()
+				.<span class="ident">into_iter</span>()
 				.<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">acc</span>, <span class="ident">aura</span>)<span class="op">|</span> {
 					(
 						<span class="ident">acc</span>.<span class="ident">clone</span>(),                 <span class="comment">// account id</span>
-						<span class="ident">acc</span>.<span class="ident">clone</span>(),                 <span class="comment">// validator id</span>
+						<span class="ident">acc</span>,                         <span class="comment">// validator id</span>
 						<span class="ident">westmint_session_keys</span>(<span class="ident">aura</span>), <span class="comment">// session keys</span>
 					)
 				})

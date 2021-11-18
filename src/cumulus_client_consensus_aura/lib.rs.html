@@ -492,15 +492,6 @@
 <span id="492">492</span>
 <span id="493">493</span>
 <span id="494">494</span>
-<span id="495">495</span>
-<span id="496">496</span>
-<span id="497">497</span>
-<span id="498">498</span>
-<span id="499">499</span>
-<span id="500">500</span>
-<span id="501">501</span>
-<span id="502">502</span>
-<span id="503">503</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2021 Parity Technologies (UK) Ltd.</span>
 <span class="comment">// This file is part of Cumulus.</span>
 
@@ -541,7 +532,7 @@
 <span class="kw">use</span> <span class="ident">sc_telemetry::TelemetryHandle</span>;
 <span class="kw">use</span> <span class="ident">sp_api::ProvideRuntimeApi</span>;
 <span class="kw">use</span> <span class="ident">sp_application_crypto::AppPublic</span>;
-<span class="kw">use</span> <span class="ident">sp_blockchain</span>::{<span class="ident">HeaderBackend</span>, <span class="ident">ProvideCache</span>};
+<span class="kw">use</span> <span class="ident">sp_blockchain::HeaderBackend</span>;
 <span class="kw">use</span> <span class="ident">sp_consensus</span>::{
 	<span class="ident">EnableProofRecording</span>, <span class="ident">Environment</span>, <span class="ident">ProofRecording</span>, <span class="ident">Proposer</span>, <span class="ident">SlotData</span>, <span class="ident">SyncOracle</span>,
 };
@@ -616,14 +607,8 @@
 		<span class="ident">max_block_proposal_slot_portion</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SlotProportion</span><span class="op">&gt;</span>,
 	) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>
 	<span class="kw">where</span>
-		<span class="ident">Client</span>: <span class="ident">ProvideRuntimeApi</span><span class="op">&lt;</span><span class="ident">B</span><span class="op">&gt;</span>
-			<span class="op">+</span> <span class="ident">BlockOf</span>
-			<span class="op">+</span> <span class="ident">ProvideCache</span><span class="op">&lt;</span><span class="ident">B</span><span class="op">&gt;</span>
-			<span class="op">+</span> <span class="ident">AuxStore</span>
-			<span class="op">+</span> <span class="ident">HeaderBackend</span><span class="op">&lt;</span><span class="ident">B</span><span class="op">&gt;</span>
-			<span class="op">+</span> <span class="ident">Send</span>
-			<span class="op">+</span> <span class="ident">Sync</span>
-			<span class="op">+</span> <span class="lifetime">&#39;static</span>,
+		<span class="ident">Client</span>:
+			<span class="ident">ProvideRuntimeApi</span><span class="op">&lt;</span><span class="ident">B</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">BlockOf</span> <span class="op">+</span> <span class="ident">AuxStore</span> <span class="op">+</span> <span class="ident">HeaderBackend</span><span class="op">&lt;</span><span class="ident">B</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
 		<span class="ident">Client::Api</span>: <span class="ident">AuraApi</span><span class="op">&lt;</span><span class="ident">B</span>, <span class="ident">P::Public</span><span class="op">&gt;</span>,
 		<span class="ident">BI</span>: <span class="ident">BlockImport</span><span class="op">&lt;</span><span class="ident">B</span>, <span class="ident">Transaction</span> <span class="op">=</span> <span class="ident">sp_api::TransactionFor</span><span class="op">&lt;</span><span class="ident">Client</span>, <span class="ident">B</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
 		<span class="ident">SO</span>: <span class="ident">SyncOracle</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="ident">Clone</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
@@ -789,7 +774,6 @@
 	<span class="ident">CIDP::InherentDataProviders</span>: <span class="ident">InherentDataProviderExt</span> <span class="op">+</span> <span class="ident">Send</span>,
 	<span class="ident">Client</span>: <span class="ident">ProvideRuntimeApi</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">BlockOf</span>
-		<span class="op">+</span> <span class="ident">ProvideCache</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">AuxStore</span>
 		<span class="op">+</span> <span class="ident">HeaderBackend</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">Send</span>
@@ -870,7 +854,6 @@
 	<span class="ident">CIDP::InherentDataProviders</span>: <span class="ident">InherentDataProviderExt</span> <span class="op">+</span> <span class="ident">Send</span>,
 	<span class="ident">Client</span>: <span class="ident">ProvideRuntimeApi</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">BlockOf</span>
-		<span class="op">+</span> <span class="ident">ProvideCache</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">AuxStore</span>
 		<span class="op">+</span> <span class="ident">HeaderBackend</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">Send</span>
@@ -950,7 +933,6 @@
 	<span class="ident">CIDP::InherentDataProviders</span>: <span class="ident">InherentDataProviderExt</span> <span class="op">+</span> <span class="ident">Send</span>,
 	<span class="ident">Client</span>: <span class="ident">ProvideRuntimeApi</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">BlockOf</span>
-		<span class="op">+</span> <span class="ident">ProvideCache</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">AuxStore</span>
 		<span class="op">+</span> <span class="ident">HeaderBackend</span><span class="op">&lt;</span><span class="ident">Block</span><span class="op">&gt;</span>
 		<span class="op">+</span> <span class="ident">Send</span>

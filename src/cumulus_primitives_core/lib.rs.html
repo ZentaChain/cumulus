@@ -345,7 +345,7 @@
 
 <span class="kw">impl</span> <span class="ident">XcmpMessageSource</span> <span class="kw">for</span> () {
 	<span class="kw">fn</span> <span class="ident">take_outbound_messages</span>(<span class="ident">_maximum_channels</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">ParaId</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
-		<span class="macro">vec!</span>[]
+		<span class="ident">Vec::new</span>()
 	}
 }
 

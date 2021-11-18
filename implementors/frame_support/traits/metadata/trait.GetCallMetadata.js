@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["cumulus_test_runtime"] = [{"text":"impl GetCallMetadata for <a class=\"enum\" href=\"cumulus_test_runtime/enum.Call.html\" title=\"enum cumulus_test_runtime::Call\">Call</a>","synthetic":false,"types":["cumulus_test_runtime::Call"]}];
-implementors["cumulus_test_runtime_upgrade"] = [{"text":"impl GetCallMetadata for <a class=\"enum\" href=\"cumulus_test_runtime_upgrade/enum.Call.html\" title=\"enum cumulus_test_runtime_upgrade::Call\">Call</a>","synthetic":false,"types":["cumulus_test_runtime_upgrade::Call"]}];
 implementors["parachain_template_runtime"] = [{"text":"impl GetCallMetadata for <a class=\"enum\" href=\"parachain_template_runtime/enum.Call.html\" title=\"enum parachain_template_runtime::Call\">Call</a>","synthetic":false,"types":["parachain_template_runtime::Call"]}];
 implementors["rococo_runtime"] = [{"text":"impl GetCallMetadata for <a class=\"enum\" href=\"rococo_runtime/enum.Call.html\" title=\"enum rococo_runtime::Call\">Call</a>","synthetic":false,"types":["rococo_runtime::Call"]}];
 implementors["shell_runtime"] = [{"text":"impl GetCallMetadata for <a class=\"enum\" href=\"shell_runtime/enum.Call.html\" title=\"enum shell_runtime::Call\">Call</a>","synthetic":false,"types":["shell_runtime::Call"]}];
